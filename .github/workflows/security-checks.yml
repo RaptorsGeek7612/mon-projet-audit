@@ -81,7 +81,10 @@ jobs:
         run: halmos --contract VaultHalmosTest
 
       - name: Run halmos (AMM)
-        run: halmos --contract AMMHalmosTest
+        # check_SwapInvariant reasons about nonlinear arithmetic (division), which is
+        # inherently slow for the SMT solver; the 60s default times out before it can
+        # conclude, regardless of how narrow the symbolic input ranges are.
+        run: halmos --contract AMMHalmosTest --solver-timeout-assertion 300s
 
   certora:
     name: Certora (formal verification)
