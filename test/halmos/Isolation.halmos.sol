@@ -14,6 +14,18 @@ contract VaultMinimal {
     }
 }
 
+contract VaultTwoUses {
+    IERC20 public immutable asset;
+
+    constructor(IERC20 _asset) {
+        asset = _asset;
+    }
+
+    function peek() external view returns (address) {
+        return address(asset);
+    }
+}
+
 interface IHelperIface {
     function x() external view returns (uint256);
 }
@@ -87,6 +99,36 @@ contract OnlyVaultMinimalHalmosTest is Test {
 
     function setUp() public {
         vault = new VaultMinimal(IERC20(address(0xBEEF)));
+    }
+
+    function check_dummy() public view {
+        assert(address(vault.asset()) == address(0xBEEF));
+    }
+}
+
+contract OnlyVaultTwoUsesHalmosTest is Test {
+    VaultTwoUses vault;
+
+    function setUp() public {
+        vault = new VaultTwoUses(IERC20(address(0xBEEF)));
+    }
+
+    function check_dummy() public view {
+        assert(address(vault.asset()) == address(0xBEEF));
+    }
+}
+
+contract VaultRawCreateHalmosTest is Test {
+    Vault vault;
+
+    function setUp() public {
+        bytes memory initcode = abi.encodePacked(type(Vault).creationCode, abi.encode(address(0xBEEF)));
+        address addr;
+        assembly {
+            addr := create(0, add(initcode, 0x20), mload(initcode))
+        }
+        require(addr != address(0), "raw create failed");
+        vault = Vault(addr);
     }
 
     function check_dummy() public view {

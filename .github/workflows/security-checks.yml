@@ -108,6 +108,14 @@ jobs:
         continue-on-error: true
         run: halmos --contract OnlyVaultMinimalHalmosTest -v --debug
 
+      - name: Run halmos (Isolation debug - vault two uses)
+        continue-on-error: true
+        run: halmos --contract OnlyVaultTwoUsesHalmosTest -v --debug
+
+      - name: Run halmos (Isolation debug - vault raw create)
+        continue-on-error: true
+        run: halmos --contract VaultRawCreateHalmosTest -v --debug
+
       - name: Run halmos (Isolation debug - full)
         continue-on-error: true
         run: halmos --contract IsolationHalmosTest -v
