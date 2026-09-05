@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract SimpleAMM {
+    IERC20 public immutable token0;
+    IERC20 public immutable token1;
+
+    uint256 public reserve0;
+    uint256 public reserve1;
+
+    constructor(address _token0, address _token1) {
+        token0 = IERC20(_token0);
+        token1 = IERC20(_token1);
+    }
+
+    // Ajout rudimentaire de liquidité pour notre test
+    function mint(uint256 amount0, uint256 amount1) external {
+        token0.transferFrom(msg.sender, address(this), amount0);
+        token1.transferFrom(msg.sender, address(this), amount1);
+        reserve0 += amount0;
+        reserve1 += amount1;
+    }
+
+    // Fonction de Swap (Échange de Token0 contre Token1)
+    function swap0For1(uint256 amount0In) external returns (uint256 amount1Out) {
+        require(amount0In > 0, "Montant invalide");
+
+        // Calcul mathématique basé sur x * y = k
+        // amount1Out = (reserve1 * amount0In) / (reserve0 + amount0In)
+        uint256 numerator = reserve1 * amount0In;
+        uint256 denominator = reserve0 + amount0In;
+        amount1Out = numerator / denominator;
+
+        require(amount1Out < reserve1, "Liquidite insuffisante");
+
+        // Transferts et mise à jour des réserves
+        token0.transferFrom(msg.sender, address(this), amount0In);
+        token1.transferFrom(address(this), msg.sender, amount1Out);
+
+        reserve0 += amount0In;
+        reserve1 -= amount1Out;
+    }
+}
