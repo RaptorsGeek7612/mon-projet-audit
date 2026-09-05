@@ -70,8 +70,11 @@ jobs:
       - name: Install halmos
         run: pip install halmos
 
-      - name: Run halmos
+      - name: Run halmos (Vault)
         run: halmos --contract VaultHalmosTest
+
+      - name: Run halmos (AMM)
+        run: halmos --contract AMMHalmosTest
 
   certora:
     name: Certora (formal verification)
@@ -111,3 +114,4 @@ jobs:
             exit 0
           fi
           certoraRun certora/conf/Vault.conf
+          certoraRun certora/conf/AMM.conf

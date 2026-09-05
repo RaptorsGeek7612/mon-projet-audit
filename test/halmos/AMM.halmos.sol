@@ -32,8 +32,10 @@ contract AMMHalmosTest is Test {
         vm.assume(amountIn > 0 && amountIn < 100_000_000 ether);
 
         // Injecter manuellement les réserves initiales symboliques
-        vm.store(address(amm), bytes32(uint256(2)), bytes32(initRes0));
-        vm.store(address(amm), bytes32(uint256(3)), bytes32(initRes1));
+        // reserve0 -> slot 0, reserve1 -> slot 1 (token0/token1 sont immutable, donc
+        // n'occupent aucun slot de storage : cf. `forge inspect SimpleAMM storage-layout`).
+        vm.store(address(amm), bytes32(uint256(0)), bytes32(initRes0));
+        vm.store(address(amm), bytes32(uint256(1)), bytes32(initRes1));
 
         uint256 kBefore = initRes0 * initRes1;
 
