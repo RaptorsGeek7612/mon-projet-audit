@@ -78,7 +78,7 @@ jobs:
         run: pip install halmos
 
       - name: Run halmos (Vault)
-        run: halmos --contract VaultHalmosTest
+        run: halmos --contract VaultHalmosTest -vv --debug
 
       - name: Run halmos (AMM)
         run: halmos --contract AMMHalmosTest
