@@ -22,7 +22,22 @@ contract AMMHalmosTest is Test {
     address mock1 = address(new MockToken());
 
     function setUp() public {
-        amm = new SimpleAMM(mock0, mock1);
+        amm = _deploySimpleAMM(mock0, mock1);
+    }
+
+    /// @dev `new SimpleAMM(...)` fait planter halmos (bug connu : résolution d'artefact
+    /// incorrecte pour un contrat importé d'un autre fichier avec `immutable`).
+    /// Contournement : déployer via vm.getCode + create bas niveau, que halmos gère
+    /// correctement.
+    function _deploySimpleAMM(address token0, address token1) internal returns (SimpleAMM deployed) {
+        bytes memory code = vm.getCode("SimpleAMM.sol:SimpleAMM");
+        bytes memory initcode = abi.encodePacked(code, abi.encode(token0, token1));
+        address addr;
+        assembly {
+            addr := create(0, add(initcode, 0x20), mload(initcode))
+        }
+        require(addr != address(0), "SimpleAMM deploy failed");
+        deployed = SimpleAMM(addr);
     }
 
     function check_SwapInvariant(uint256 initRes0, uint256 initRes1, uint256 amountIn) public {

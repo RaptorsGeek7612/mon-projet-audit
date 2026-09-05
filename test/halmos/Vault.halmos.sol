@@ -4,6 +4,7 @@ pragma solidity 0.8.35;
 import {Test} from "forge-std/Test.sol";
 import {SymTest} from "halmos-cheatcodes/SymTest.sol";
 import {Vault} from "../../src/Vault.sol";
+import {IERC20} from "../../src/interfaces/IERC20.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 
 /// @notice Tests d'exécution symbolique (halmos). Lancer avec: halmos --contract VaultHalmosTest
@@ -13,7 +14,22 @@ contract VaultHalmosTest is SymTest, Test {
 
     function setUp() public {
         token = new MockERC20();
-        vault = new Vault(token);
+        vault = _deployVault(token);
+    }
+
+    /// @dev `new Vault(...)` fait planter halmos (bug connu : résolution d'artefact
+    /// incorrecte pour un contrat importé d'un autre fichier avec `immutable`).
+    /// Contournement : déployer via vm.getCode + create bas niveau, que halmos gère
+    /// correctement.
+    function _deployVault(IERC20 asset) internal returns (Vault deployed) {
+        bytes memory code = vm.getCode("Vault.sol:Vault");
+        bytes memory initcode = abi.encodePacked(code, abi.encode(address(asset)));
+        address addr;
+        assembly {
+            addr := create(0, add(initcode, 0x20), mload(initcode))
+        }
+        require(addr != address(0), "Vault deploy failed");
+        deployed = Vault(addr);
     }
 
     /// @dev Un retrait ne peut jamais dépasser ce que l'utilisateur a réellement déposé.
