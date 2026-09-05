@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {Vault} from "../../src/Vault.sol";
+import {MockERC20} from "../mocks/MockERC20.sol";
 
 interface IHelperIface {
     function x() external view returns (uint256);
@@ -53,6 +55,8 @@ contract IsolationHalmosTest is Test {
     WithImmutableAddress b;
     WithImmutableInterface c;
     ConsumesInterfaceDirectly d;
+    MockERC20 token;
+    Vault vault;
 
     function setUp() public {
         helper = new Helper();
@@ -60,6 +64,8 @@ contract IsolationHalmosTest is Test {
         b = new WithImmutableAddress(address(helper));
         c = new WithImmutableInterface(address(helper));
         d = new ConsumesInterfaceDirectly(helper);
+        token = new MockERC20();
+        vault = new Vault(token);
     }
 
     function check_dummy() public view {
@@ -67,5 +73,6 @@ contract IsolationHalmosTest is Test {
         assert(b.target() == address(helper));
         assert(address(c.target()) == address(helper));
         assert(address(d.target()) == address(helper));
+        assert(address(vault.asset()) == address(token));
     }
 }
