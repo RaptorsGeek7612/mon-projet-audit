@@ -116,6 +116,10 @@ jobs:
         continue-on-error: true
         run: halmos --contract VaultRawCreateHalmosTest -v --debug
 
+      - name: Run halmos (Isolation debug - vault getCode workaround)
+        continue-on-error: true
+        run: halmos --contract VaultGetCodeHalmosTest -v --debug
+
       - name: Run halmos (Isolation debug - full)
         continue-on-error: true
         run: halmos --contract IsolationHalmosTest -v

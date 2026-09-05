@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity 0.8.35;
 
 import {Test} from "forge-std/Test.sol";
 import {Vault} from "../../src/Vault.sol";
@@ -128,6 +128,25 @@ contract VaultRawCreateHalmosTest is Test {
             addr := create(0, add(initcode, 0x20), mload(initcode))
         }
         require(addr != address(0), "raw create failed");
+        vault = Vault(addr);
+    }
+
+    function check_dummy() public view {
+        assert(address(vault.asset()) == address(0xBEEF));
+    }
+}
+
+contract VaultGetCodeHalmosTest is Test {
+    Vault vault;
+
+    function setUp() public {
+        bytes memory code = vm.getCode("Vault.sol:Vault");
+        bytes memory initcode = abi.encodePacked(code, abi.encode(address(0xBEEF)));
+        address addr;
+        assembly {
+            addr := create(0, add(initcode, 0x20), mload(initcode))
+        }
+        require(addr != address(0), "getCode create failed");
         vault = Vault(addr);
     }
 
