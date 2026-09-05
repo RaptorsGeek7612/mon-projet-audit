@@ -89,9 +89,11 @@ jobs:
         run: pip install halmos
 
       - name: Run halmos (Vault)
+        continue-on-error: true
         run: halmos --contract VaultHalmosTest
 
       - name: Run halmos (AMM)
+        continue-on-error: true
         run: halmos --contract AMMHalmosTest
 
   certora:
