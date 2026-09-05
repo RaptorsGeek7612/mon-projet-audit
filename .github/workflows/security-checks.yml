@@ -1,0 +1,113 @@
+name: Security Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  foundry:
+    name: Foundry (build, fmt, tests, fuzz)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Check formatting
+        run: forge fmt --check
+
+      - name: Build contracts
+        run: forge build --sizes
+
+      - name: Run tests (unit + fuzz + invariants)
+        run: forge test -vvv
+
+  slither:
+    name: Slither (static analysis)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.4.0
+        with:
+          target: "src/"
+          slither-config: ""
+          fail-on: high
+
+  halmos:
+    name: Halmos (symbolic execution)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install halmos
+        run: pip install halmos
+
+      - name: Run halmos
+        run: halmos --contract VaultHalmosTest
+
+  certora:
+    name: Certora (formal verification)
+    runs-on: ubuntu-latest
+    # Ne s'exécute que si la clé API Certora est configurée dans les secrets du repo.
+    if: ${{ github.repository_owner != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Java (required by the Certora Prover)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install certora-cli
+        run: pip install certora-cli
+
+      - name: Run Certora Prover
+        env:
+          CERTORAKEY: ${{ secrets.CERTORAKEY }}
+        run: |
+          if [ -z "$CERTORAKEY" ]; then
+            echo "CERTORAKEY secret is not set — skipping Certora run."
+            exit 0
+          fi
+          certoraRun certora/conf/Vault.conf
