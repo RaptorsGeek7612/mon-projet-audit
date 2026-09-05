@@ -42,12 +42,19 @@ jobs:
         with:
           version: stable
 
-      - name: Run Slither
-        uses: crytic/slither-action@v0.4.0
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          target: "src/"
-          slither-config: ""
-          fail-on: high
+          python-version: "3.11"
+
+      - name: Install Slither
+        run: pip install slither-analyzer
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run Slither
+        run: slither . --fail-high
 
   halmos:
     name: Halmos (symbolic execution)
