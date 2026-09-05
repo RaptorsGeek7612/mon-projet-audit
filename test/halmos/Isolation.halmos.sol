@@ -49,6 +49,30 @@ contract WithImmutableInterface {
     }
 }
 
+contract OnlyTokenHalmosTest is Test {
+    MockERC20 token;
+
+    function setUp() public {
+        token = new MockERC20();
+    }
+
+    function check_dummy() public view {
+        assert(address(token) != address(0));
+    }
+}
+
+contract OnlyVaultHalmosTest is Test {
+    Vault vault;
+
+    function setUp() public {
+        vault = new Vault(MockERC20(address(0xBEEF)));
+    }
+
+    function check_dummy() public view {
+        assert(address(vault.asset()) == address(0xBEEF));
+    }
+}
+
 contract IsolationHalmosTest is Test {
     Helper helper;
     NoImmutable a;

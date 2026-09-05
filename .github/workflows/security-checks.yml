@@ -96,7 +96,15 @@ jobs:
         continue-on-error: true
         run: halmos --contract AMMHalmosTest
 
-      - name: Run halmos (Isolation debug)
+      - name: Run halmos (Isolation debug - token only)
+        continue-on-error: true
+        run: halmos --contract OnlyTokenHalmosTest -v --debug
+
+      - name: Run halmos (Isolation debug - vault only)
+        continue-on-error: true
+        run: halmos --contract OnlyVaultHalmosTest -v --debug
+
+      - name: Run halmos (Isolation debug - full)
         continue-on-error: true
         run: halmos --contract IsolationHalmosTest -v
 
