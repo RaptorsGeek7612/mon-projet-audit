@@ -47,8 +47,12 @@ contract VaultHalmosTest is SymTest, Test {
 
         vm.prank(user);
         if (withdrawAmount > depositAmount) {
-            vm.expectRevert("Vault: insufficient balance");
-            vault.withdraw(withdrawAmount);
+            // vm.expectRevert(string) isn't supported by halmos; use try/catch instead.
+            try vault.withdraw(withdrawAmount) {
+                assert(false);
+            } catch {
+                // expected: reverts on insufficient balance
+            }
         } else {
             vault.withdraw(withdrawAmount);
             assert(vault.balanceOf(user) == depositAmount - withdrawAmount);
