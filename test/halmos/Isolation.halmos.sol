@@ -4,6 +4,15 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {Vault} from "../../src/Vault.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
+import {IERC20} from "../../src/interfaces/IERC20.sol";
+
+contract VaultMinimal {
+    IERC20 public immutable asset;
+
+    constructor(IERC20 _asset) {
+        asset = _asset;
+    }
+}
 
 interface IHelperIface {
     function x() external view returns (uint256);
@@ -66,6 +75,18 @@ contract OnlyVaultHalmosTest is Test {
 
     function setUp() public {
         vault = new Vault(MockERC20(address(0xBEEF)));
+    }
+
+    function check_dummy() public view {
+        assert(address(vault.asset()) == address(0xBEEF));
+    }
+}
+
+contract OnlyVaultMinimalHalmosTest is Test {
+    VaultMinimal vault;
+
+    function setUp() public {
+        vault = new VaultMinimal(IERC20(address(0xBEEF)));
     }
 
     function check_dummy() public view {
