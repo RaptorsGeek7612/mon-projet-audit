@@ -11,10 +11,11 @@ methods {
     function stake(uint256) external;
     function withdraw(uint256) external;
     function getReward() external;
-    function setRewardRate(uint256) external;
+    function notifyRewardAmount(uint256) external;
     function balanceOf(address) external returns (uint256) envfree;
     function totalSupply() external returns (uint256) envfree;
     function owner() external returns (address) envfree;
+    function rewardReserve() external returns (uint256) envfree;
 
     // Sans ce resume, un appel non resolu vers stakingToken/rewardToken serait traite comme
     // pouvant "havoc" le storage du contrat (cf. le meme correctif applique a Vault.spec).
@@ -87,12 +88,25 @@ rule onlyCallerBalanceChanges(method f, address other) {
     assert balanceOf(other) == otherBalBefore;
 }
 
-// Only the owner may change the reward rate.
-rule setRewardRateOnlyOwner(uint256 newRate) {
+// Only the owner may fund a new reward period.
+rule notifyRewardAmountOnlyOwner(uint256 amount) {
     env e;
     require e.msg.sender != owner();
 
-    setRewardRate@withrevert(e, newRate);
+    notifyRewardAmount@withrevert(e, amount);
 
     assert lastReverted;
+}
+
+// notifyRewardAmount() must grow the reward reserve by exactly the funded amount.
+rule notifyRewardAmountIncreasesReserve(uint256 amount) {
+    env e;
+    require amount > 0;
+    require e.msg.sender == owner();
+
+    uint256 reserveBefore = rewardReserve();
+
+    notifyRewardAmount(e, amount);
+
+    assert to_mathint(rewardReserve()) == reserveBefore + amount;
 }

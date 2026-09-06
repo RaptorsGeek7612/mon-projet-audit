@@ -3,17 +3,27 @@ pragma solidity 0.8.35;
 
 import {IERC20} from "./interfaces/IERC20.sol";
 
-/// @notice Staking avec recompenses lineaires dans le temps (modele reward-per-token, a la Synthetix).
+/// @notice Staking avec recompenses lineaires financees explicitement (modele reward-per-token
+/// + notifyRewardAmount, a la Synthetix).
+///
+/// Le taux de recompense n'est plus fixe arbitrairement par l'owner : il derive d'un montant
+/// reellement transfere au contrat (`notifyRewardAmount`) reparti sur une duree fixe. Cela
+/// garantit que toute recompense qui s'accumule est deja backee par un vrai transfert, et - avec
+/// stakingToken != rewardToken impose au deploiement - que ce financement ne peut jamais entamer
+/// le solde qui garantit `totalSupply` (le principal stake).
 contract StakingRewards {
     uint256 private constant PRECISION = 1e18;
+    uint256 public constant REWARD_DURATION = 7 days;
 
     IERC20 public immutable stakingToken;
     IERC20 public immutable rewardToken;
     address public immutable owner;
 
     uint256 public rewardRate; // recompenses distribuees par seconde, sur l'ensemble des stakers
+    uint256 public periodFinish;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
+    uint256 public rewardReserve; // recompenses financees et pas encore distribuees
 
     uint256 public totalSupply;
     mapping(address => uint256) public balanceOf;
@@ -23,9 +33,10 @@ contract StakingRewards {
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
-    event RewardRateUpdated(uint256 newRate);
+    event RewardFunded(uint256 amount, uint256 newRewardRate);
 
     constructor(IERC20 _stakingToken, IERC20 _rewardToken) {
+        require(address(_stakingToken) != address(_rewardToken), "StakingRewards: staking and reward token must differ");
         stakingToken = _stakingToken;
         rewardToken = _rewardToken;
         owner = msg.sender;
@@ -33,7 +44,7 @@ contract StakingRewards {
 
     modifier updateReward(address account) {
         rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = block.timestamp;
+        lastUpdateTime = lastTimeRewardApplicable();
         if (account != address(0)) {
             rewards[account] = earned(account);
             userRewardPerTokenPaid[account] = rewardPerTokenStored;
@@ -41,11 +52,15 @@ contract StakingRewards {
         _;
     }
 
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return block.timestamp < periodFinish ? block.timestamp : periodFinish;
+    }
+
     function rewardPerToken() public view returns (uint256) {
         if (totalSupply == 0) {
             return rewardPerTokenStored;
         }
-        uint256 elapsed = block.timestamp - lastUpdateTime;
+        uint256 elapsed = lastTimeRewardApplicable() - lastUpdateTime;
         return rewardPerTokenStored + (elapsed * rewardRate * PRECISION) / totalSupply;
     }
 
@@ -54,10 +69,28 @@ contract StakingRewards {
         return accrued + rewards[account];
     }
 
-    function setRewardRate(uint256 _rewardRate) external updateReward(address(0)) {
+    /// @notice Finance une nouvelle periode de recompenses de `REWARD_DURATION`. Le taux est
+    /// recalcule a partir du montant reellement transfere, en reportant les recompenses non
+    /// distribuees de la periode en cours le cas echeant.
+    function notifyRewardAmount(uint256 amount) external updateReward(address(0)) {
         require(msg.sender == owner, "StakingRewards: not owner");
-        rewardRate = _rewardRate;
-        emit RewardRateUpdated(_rewardRate);
+        require(amount > 0, "StakingRewards: zero amount");
+
+        if (block.timestamp >= periodFinish) {
+            rewardRate = amount / REWARD_DURATION;
+        } else {
+            uint256 remaining = periodFinish - block.timestamp;
+            rewardRate = (amount + remaining * rewardRate) / REWARD_DURATION;
+        }
+
+        rewardReserve += amount;
+        periodFinish = block.timestamp + REWARD_DURATION;
+
+        emit RewardFunded(amount, rewardRate);
+
+        require(
+            rewardToken.transferFrom(msg.sender, address(this), amount), "StakingRewards: funding transferFrom failed"
+        );
     }
 
     function stake(uint256 amount) external updateReward(msg.sender) {
@@ -91,6 +124,7 @@ contract StakingRewards {
 
         // Effects before interactions.
         rewards[msg.sender] = 0;
+        rewardReserve -= reward;
 
         emit RewardPaid(msg.sender, reward);
 

@@ -6,6 +6,8 @@ methods {
     // Déclaration des vues en 'envfree' car elles ne dépendent pas du contexte de transaction
     function reserve0() external returns (uint256) envfree;
     function reserve1() external returns (uint256) envfree;
+    function totalLiquidity() external returns (uint256) envfree;
+    function liquidityOf(address) external returns (uint256) envfree;
 
     // On indique au Prover que les transferts des jetons externes renvoient toujours true pour simplifier la preuve de l'AMM
     function _.transferFrom(address, address, uint256) external => ALWAYS(true);
@@ -13,7 +15,7 @@ methods {
 }
 
 // Règle de validation du swap
-rule swapIntegrity(uint256 amountIn) {
+rule swapIntegrity(uint256 amountIn, uint256 minAmountOut) {
     env e;
 
     uint256 r0Before = reserve0();
@@ -23,7 +25,7 @@ rule swapIntegrity(uint256 amountIn) {
     mathint kBefore = r0Before * r1Before;
 
     // Déclencher l'action
-    currentContract.swap0For1(e, amountIn);
+    currentContract.swap0For1(e, amountIn, minAmountOut);
 
     uint256 r0After = reserve0();
     uint256 r1After = reserve1();
@@ -34,13 +36,13 @@ rule swapIntegrity(uint256 amountIn) {
 }
 
 // mint() doit crediter les deux reserves exactement des montants fournis, ni plus ni moins.
-rule mintIsExact(uint256 amount0, uint256 amount1) {
+rule mintIsExact(uint256 amount0, uint256 amount1, uint256 minLiquidity) {
     env e;
 
     uint256 r0Before = reserve0();
     uint256 r1Before = reserve1();
 
-    currentContract.mint(e, amount0, amount1);
+    currentContract.mint(e, amount0, amount1, minLiquidity);
 
     assert to_mathint(reserve0()) == r0Before + amount0, "reserve0 n'a pas ete creditee du montant exact";
     assert to_mathint(reserve1()) == r1Before + amount1, "reserve1 n'a pas ete creditee du montant exact";
@@ -48,18 +50,51 @@ rule mintIsExact(uint256 amount0, uint256 amount1) {
 
 // mint() ne peut jamais faire baisser le produit constant k (il ne fait que l'augmenter ou le laisser
 // inchange si l'un des deux montants est nul).
-rule mintNeverDecreasesConstantProduct(uint256 amount0, uint256 amount1) {
+rule mintNeverDecreasesConstantProduct(uint256 amount0, uint256 amount1, uint256 minLiquidity) {
     env e;
 
     uint256 r0Before = reserve0();
     uint256 r1Before = reserve1();
     mathint kBefore = r0Before * r1Before;
 
-    currentContract.mint(e, amount0, amount1);
+    currentContract.mint(e, amount0, amount1, minLiquidity);
 
     uint256 r0After = reserve0();
     uint256 r1After = reserve1();
     mathint kAfter = r0After * r1After;
 
     assert kAfter >= kBefore, "mint() a fait baisser le produit constant";
+}
+
+// burn() doit debiter les deux reserves exactement des montants qu'il retourne, ni plus ni moins.
+rule burnIsExact(uint256 liquidity, uint256 minAmount0, uint256 minAmount1) {
+    env e;
+
+    uint256 r0Before = reserve0();
+    uint256 r1Before = reserve1();
+
+    uint256 amount0;
+    uint256 amount1;
+    amount0, amount1 = currentContract.burn(e, liquidity, minAmount0, minAmount1);
+
+    assert to_mathint(reserve0()) == r0Before - amount0, "reserve0 n'a pas ete debitee du montant exact";
+    assert to_mathint(reserve1()) == r1Before - amount1, "reserve1 n'a pas ete debitee du montant exact";
+}
+
+// burn() ne peut jamais rendre a l'appelant plus que sa part proportionnelle des reserves : le
+// produit constant ne peut donc jamais augmenter suite a un retrait de liquidite.
+rule burnNeverIncreasesConstantProduct(uint256 liquidity, uint256 minAmount0, uint256 minAmount1) {
+    env e;
+
+    uint256 r0Before = reserve0();
+    uint256 r1Before = reserve1();
+    mathint kBefore = r0Before * r1Before;
+
+    currentContract.burn(e, liquidity, minAmount0, minAmount1);
+
+    uint256 r0After = reserve0();
+    uint256 r1After = reserve1();
+    mathint kAfter = r0After * r1After;
+
+    assert kAfter <= kBefore, "burn() a fait augmenter le produit constant";
 }

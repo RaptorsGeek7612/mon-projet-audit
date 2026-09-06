@@ -69,12 +69,13 @@ contract StakingRewardsHalmosTest is SymTest, Test {
         }
     }
 
-    /// @dev Seul le proprietaire peut changer le taux de recompense.
-    function check_onlyOwnerCanSetRewardRate(address caller, uint256 newRate) public {
+    /// @dev Seul le proprietaire peut financer une nouvelle periode de recompenses.
+    function check_onlyOwnerCanNotifyReward(address caller, uint256 amount) public {
         vm.assume(caller != address(this));
+        vm.assume(amount > 0);
 
         vm.prank(caller);
-        try staking.setRewardRate(newRate) {
+        try staking.notifyRewardAmount(amount) {
             assert(false);
         } catch {
             // expected: reverts for any non-owner caller

@@ -58,7 +58,7 @@ contract AMMHalmosTest is Test {
         uint256 kBefore = initRes0 * initRes1;
 
         // 2. Action symbolique
-        try amm.swap0For1(amountIn) returns (uint256) {
+        try amm.swap0For1(amountIn, 0) returns (uint256) {
             // 3. Vérification de l'invariant
             uint256 kAfter = amm.reserve0() * amm.reserve1();
             assert(kAfter >= kBefore);
