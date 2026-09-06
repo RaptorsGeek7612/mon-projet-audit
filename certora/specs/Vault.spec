@@ -5,6 +5,13 @@ methods {
     function withdraw(uint256) external;
     function balanceOf(address) external returns (uint256) envfree;
     function totalSupply() external returns (uint256) envfree;
+
+    // Sans ce résumé, un appel non résolu vers `asset` (transferFrom/transfer)
+    // est traité par le Prover comme pouvant "havoc" (modifier arbitrairement)
+    // le storage du Vault, ce qui casse trivialement l'invariant de comptabilité
+    // sans rapport avec un vrai bug. Cf. le même résumé dans AMM.spec.
+    function _.transferFrom(address, address, uint256) external => ALWAYS(true);
+    function _.transfer(address, uint256) external => ALWAYS(true);
 }
 
 // Ghost tracking the sum of all balanceOf entries, kept in sync via storage hooks.
