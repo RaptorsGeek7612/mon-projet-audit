@@ -121,6 +121,12 @@ jobs:
       - name: Install certora-cli
         run: pip install certora-cli
 
+      - name: Install solc 0.8.35
+        run: |
+          pip install solc-select
+          solc-select install 0.8.35
+          solc-select use 0.8.35
+
       - name: Run Certora Prover
         env:
           CERTORAKEY: ${{ secrets.CERTORAKEY }}
