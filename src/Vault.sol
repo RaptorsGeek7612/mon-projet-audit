@@ -24,9 +24,9 @@ contract Vault {
         balanceOf[msg.sender] += amount;
         totalSupply += amount;
 
-        require(asset.transferFrom(msg.sender, address(this), amount), "Vault: transferFrom failed");
-
         emit Deposit(msg.sender, amount);
+
+        require(asset.transferFrom(msg.sender, address(this), amount), "Vault: transferFrom failed");
     }
 
     function withdraw(uint256 amount) external {
@@ -38,9 +38,9 @@ contract Vault {
         balanceOf[msg.sender] = bal - amount;
         totalSupply -= amount;
 
-        require(asset.transfer(msg.sender, amount), "Vault: transfer failed");
-
         emit Withdraw(msg.sender, amount);
+
+        require(asset.transfer(msg.sender, amount), "Vault: transfer failed");
     }
 
     function totalAssets() external view returns (uint256) {

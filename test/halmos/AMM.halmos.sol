@@ -3,7 +3,6 @@ pragma solidity 0.8.35;
 
 import {Test} from "forge-std/Test.sol";
 import {SimpleAMM} from "../../src/SimpleAMM.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Contrats Mock pour simuler les Tokens sous forme symbolique
 contract MockToken {

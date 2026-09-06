@@ -67,9 +67,9 @@ contract StakingRewards {
         totalSupply += amount;
         balanceOf[msg.sender] += amount;
 
-        require(stakingToken.transferFrom(msg.sender, address(this), amount), "StakingRewards: transferFrom failed");
-
         emit Staked(msg.sender, amount);
+
+        require(stakingToken.transferFrom(msg.sender, address(this), amount), "StakingRewards: transferFrom failed");
     }
 
     function withdraw(uint256 amount) external updateReward(msg.sender) {
@@ -80,9 +80,9 @@ contract StakingRewards {
         totalSupply -= amount;
         balanceOf[msg.sender] = bal - amount;
 
-        require(stakingToken.transfer(msg.sender, amount), "StakingRewards: transfer failed");
-
         emit Withdrawn(msg.sender, amount);
+
+        require(stakingToken.transfer(msg.sender, amount), "StakingRewards: transfer failed");
     }
 
     function getReward() external updateReward(msg.sender) {
@@ -92,8 +92,8 @@ contract StakingRewards {
         // Effects before interactions.
         rewards[msg.sender] = 0;
 
-        require(rewardToken.transfer(msg.sender, reward), "StakingRewards: reward transfer failed");
-
         emit RewardPaid(msg.sender, reward);
+
+        require(rewardToken.transfer(msg.sender, reward), "StakingRewards: reward transfer failed");
     }
 }
