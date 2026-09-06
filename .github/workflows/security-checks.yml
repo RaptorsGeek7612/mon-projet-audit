@@ -29,6 +29,11 @@ jobs:
       - name: Run tests (unit + fuzz + invariants)
         run: forge test -vvv
 
+      - name: Coverage report
+        # script/ (deploy scripts) and test/halmos/ (only exercised by halmos, not forge test)
+        # are excluded so the percentages reflect what this job actually runs.
+        run: forge coverage --report summary --no-match-coverage "script/|test/halmos/"
+
   slither:
     name: Slither (static analysis)
     runs-on: ubuntu-latest
