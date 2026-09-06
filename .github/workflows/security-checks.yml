@@ -92,6 +92,9 @@ jobs:
         continue-on-error: true
         run: halmos --contract AMMHalmosTest
 
+      - name: Run halmos (StakingRewards)
+        run: halmos --contract StakingRewardsHalmosTest
+
   certora:
     name: Certora (formal verification)
     runs-on: ubuntu-latest
@@ -137,3 +140,4 @@ jobs:
           fi
           certoraRun certora/conf/Vault.conf
           certoraRun certora/conf/AMM.conf
+          certoraRun certora/conf/StakingRewards.conf

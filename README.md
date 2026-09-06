@@ -8,15 +8,28 @@ Squelette de projet d'audit Web3 : contrat Solidity (Foundry), tests unitaires/f
 mon-projet-audit/
 ├── .github/workflows/security-checks.yml   # CI: forge fmt/build/test, Slither, Halmos, Certora
 ├── certora/
-│   ├── conf/Vault.conf                     # Config Certora (fichiers, spec, options)
-│   └── specs/Vault.spec                    # Règles CVL
+│   ├── conf/                               # Config Certora par contrat (fichiers, spec, options)
+│   │   ├── Vault.conf
+│   │   ├── AMM.conf
+│   │   └── StakingRewards.conf
+│   └── specs/                              # Règles CVL par contrat
+│       ├── Vault.spec
+│       ├── AMM.spec
+│       └── StakingRewards.spec
 ├── src/
-│   ├── Vault.sol                           # Contrat cible de l'audit
+│   ├── Vault.sol                           # Coffre-fort 1:1 deposit/withdraw
+│   ├── SimpleAMM.sol                       # AMM x*y=k (mint/swap)
+│   ├── StakingRewards.sol                  # Staking a recompenses lineaires (reward-per-token)
 │   └── interfaces/IERC20.sol
 ├── test/
 │   ├── Vault.t.sol                         # Tests unitaires, fuzz, invariant Foundry
+│   ├── AMM.t.sol
+│   ├── StakingRewards.t.sol
 │   ├── mocks/MockERC20.sol
-│   └── halmos/Vault.halmos.sol             # Tests d'exécution symbolique Halmos
+│   └── halmos/                             # Tests d'exécution symbolique Halmos
+│       ├── Vault.halmos.sol
+│       ├── AMM.halmos.sol
+│       └── StakingRewards.halmos.sol
 ├── foundry.toml
 └── remappings.txt
 ```
@@ -39,15 +52,19 @@ forge build              # compilation
 forge fmt --check        # style
 forge test -vvv          # tests unitaires + fuzz + invariants
 
-halmos --contract VaultHalmosTest        # exécution symbolique
+halmos --contract VaultHalmosTest           # exécution symbolique
+halmos --contract AMMHalmosTest
+halmos --contract StakingRewardsHalmosTest
 
-certoraRun certora/conf/Vault.conf        # vérification formelle (nécessite CERTORAKEY)
+certoraRun certora/conf/Vault.conf          # vérification formelle (nécessite CERTORAKEY)
+certoraRun certora/conf/AMM.conf
+certoraRun certora/conf/StakingRewards.conf
 ```
 
 ## CI
 
-Le workflow `.github/workflows/security-checks.yml` s'exécute sur chaque push/PR vers `main` :
+Le workflow `.github/workflows/security-checks.yml` s'exécute sur chaque push/PR vers `master` :
 - `foundry` : format, build, tests (échoue le pipeline si un test casse) ;
 - `slither` : analyse statique, échoue sur les findings de sévérité `high` ;
-- `halmos` : exécution symbolique des propriétés `check_*` ;
-- `certora` : vérification formelle, seulement si le secret de repo `CERTORAKEY` est défini (sinon le job passe en no-op).
+- `halmos` : exécution symbolique des propriétés `check_*` (le check AMM non-linéaire est non-bloquant, cf. commentaire dans le workflow) ;
+- `certora` : vérification formelle des trois contrats, seulement si le secret de repo `CERTORAKEY` est défini (sinon le job passe en no-op).
