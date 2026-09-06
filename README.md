@@ -16,6 +16,10 @@ mon-projet-audit/
 │       ├── Vault.spec
 │       ├── AMM.spec
 │       └── StakingRewards.spec
+├── script/                                 # Scripts de deploiement (`forge script`)
+│   ├── Vault.s.sol
+│   ├── SimpleAMM.s.sol
+│   └── StakingRewards.s.sol
 ├── src/
 │   ├── Vault.sol                           # Coffre-fort 1:1 deposit/withdraw
 │   ├── SimpleAMM.sol                       # AMM x*y=k (mint/swap)
@@ -30,6 +34,8 @@ mon-projet-audit/
 │       ├── Vault.halmos.sol
 │       ├── AMM.halmos.sol
 │       └── StakingRewards.halmos.sol
+├── AUDIT.md                                # Synthese des resultats et limites connues
+├── LICENSE
 ├── foundry.toml
 └── remappings.txt
 ```
@@ -52,6 +58,9 @@ forge build              # compilation
 forge fmt --check        # style
 forge test -vvv          # tests unitaires + fuzz + invariants
 
+# coverage (script/ et test/halmos/ exclus : jamais exécutés par `forge test`)
+forge coverage --report summary --no-match-coverage "script/|test/halmos/"
+
 halmos --contract VaultHalmosTest           # exécution symbolique
 halmos --contract AMMHalmosTest
 halmos --contract StakingRewardsHalmosTest
@@ -59,12 +68,17 @@ halmos --contract StakingRewardsHalmosTest
 certoraRun certora/conf/Vault.conf          # vérification formelle (nécessite CERTORAKEY)
 certoraRun certora/conf/AMM.conf
 certoraRun certora/conf/StakingRewards.conf
+
+# déploiement (exemple sur un fork local anvil)
+forge script script/Vault.s.sol --sig "run(address)" <asset> --rpc-url <rpc> --broadcast
 ```
 
 ## CI
 
 Le workflow `.github/workflows/security-checks.yml` s'exécute sur chaque push/PR vers `master` :
-- `foundry` : format, build, tests (échoue le pipeline si un test casse) ;
+- `foundry` : format, build, tests (échoue le pipeline si un test casse), puis un rapport de coverage (informatif, ne fait pas échouer le job) ;
 - `slither` : analyse statique, échoue sur les findings de sévérité `high` ;
 - `halmos` : exécution symbolique des propriétés `check_*` (le check AMM non-linéaire est non-bloquant, cf. commentaire dans le workflow) ;
 - `certora` : vérification formelle des trois contrats, seulement si le secret de repo `CERTORAKEY` est défini (sinon le job passe en no-op).
+
+Voir [`AUDIT.md`](./AUDIT.md) pour la synthèse des résultats et les limites de conception connues de chaque contrat.
